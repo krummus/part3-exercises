@@ -23,9 +23,10 @@ var personSchema = new mongoose.Schema({
     number: {
         type: String,
         unique: true,
+        maxlength: 11,
         validate: {
             validator: function (v) {
-                return /\d{8+}/.test(v)
+                return (/\d{2}-\d{6+}/.test(v) || /\d{3}-\d{5+}/.test(v))
             },
             message: props => `${props.value} is not a valid phone number! Requires 10 Numbers`
         },
