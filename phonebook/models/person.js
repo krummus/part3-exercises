@@ -26,9 +26,9 @@ var personSchema = new mongoose.Schema({
         maxlength: 11,
         validate: {
             validator: function (v) {
-                return (/\d{2}-\d{6+}/.test(v) || /\d{3}-\d{5+}/.test(v))
+                return /^\d{2,3}-\d{7,8}/.test(v)
             },
-            message: props => `${props.value} is not a valid phone number! Requires 10 Numbers`
+            message: props => `${props.value} is not a valid phone number! Requires 10 Numbers of the format xx-xxxxxxxx or xxx-xxxxxxx`
         },
         required: [true, 'User phone number required']
     }

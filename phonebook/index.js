@@ -10,27 +10,6 @@ app.use(express.static('build'))
 app.use(express.json())
 app.use(cors())
 
-const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
-}
-
-// handler of requests with unknown endpoint
-app.use(unknownEndpoint)
-
-const errorHandler = (error, request, response, next) => {
-    console.error(error.message)
-
-    if (error.name === 'CastError') {
-        return response.status(400).send({ error: 'malformatted id' })
-    } else if (error.name === 'ValidationError') {
-        return response.status(400).json({ error: error.message })
-    }
-    next(error)
-}
-
-// handler of requests with result to errors
-app.use(errorHandler)
-
 //for debugging, create a morgan token
 morgan.token('body', (req) => JSON.stringify(req.body))
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
@@ -76,7 +55,6 @@ app.get('/info', (request, response, next) => {
 app.post('/api/persons', (request, response, next) => {
 
     const body = request.body
-    console.log(body)
 
     if (body.name === undefined) {
         return response.status(400).json({
@@ -96,18 +74,11 @@ app.post('/api/persons', (request, response, next) => {
     })
 
     Person.find({ $or : [{ name: { $regex: body.name,$options:'i' } }, { number: body.number }] })
-        .then(persons => {
-            const nameExists = persons.filter(person => person.name.toLowerCase() === body.name.toLowerCase()).length > 0 ? true : false
-            const numberExists = persons.filter(person => person.number === body.number).length > 0 ? true : false
-
-            console.log(nameExists)
-            console.log(numberExists)
-
+        .then(
             person.save()
                 .then(savedPerson => response.json(savedPerson))
-                .then(savedAndFormattedPerson => response.json(savedAndFormattedPerson))
                 .catch(error => next(error))
-        })
+        )
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
@@ -117,12 +88,39 @@ app.put('/api/persons/:id', (request, response, next) => {
         number: body.number,
     }
 
+    if (!body.content) {
+        return response.status(400).json({
+            error: 'content missing'
+        })
+    }
+
     Person.findByIdAndUpdate(request.params.id, person, { new: true })
         .then(updatedPerson => {
             response.json(updatedPerson)
         })
         .catch(error => next(error))
 })
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
+
+// handler of requests with unknown endpoint
+app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
+    next(error)
+}
+
+// handler of requests with result to errors
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
